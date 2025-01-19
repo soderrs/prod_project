@@ -4,6 +4,7 @@ use regex::Regex;
 use serde::Deserialize;
 use sqlx::SqlitePool;
 use std::env;
+use uuid::Uuid;
 
 #[derive(Deserialize, Debug)]
 pub struct CreateCompany {
@@ -22,12 +23,13 @@ pub async fn sign_up(Json(sign_up_data): Json<CreateCompany>) -> Result<StatusCo
     if !is_unique_company(&sign_up_data).await {
         return Err(StatusCode::CONFLICT);
     }
-
+    let id = Uuid::new_v4().to_string();
     sqlx::query(
         r#"
-        INSERT INTO companies VALUES (?, ?, ?)
+        INSERT INTO companies VALUES (?, ?, ?, ?)
         "#,
     )
+    .bind(id)
     .bind(sign_up_data.name)
     .bind(sign_up_data.email)
     .bind(hash_password(&sign_up_data.password).unwrap())

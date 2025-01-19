@@ -1,7 +1,7 @@
 use crate::business::{self, auth, middlewares};
 use axum::{
     middleware,
-    routing::{get, post},
+    routing::{get, patch, post},
     Json, Router,
 };
 
@@ -13,6 +13,18 @@ pub async fn app() -> Router {
         .route(
             "/api/business/promo",
             post(business::promo::create::create_promo).layer(middleware::from_fn(
+                middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/business/promo/{id}",
+            get(business::promo::promo_by_id::get_promo).layer(middleware::from_fn(
+                middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/business/promo/{id}",
+            patch(business::promo::promo_by_id::edit_promo).layer(middleware::from_fn(
                 middlewares::authorize::authorize_middleware,
             )),
         )

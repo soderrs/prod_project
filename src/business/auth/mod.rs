@@ -18,6 +18,7 @@ pub struct Claims {
 
 #[derive(FromRow, Clone, Debug)]
 pub struct Company {
+    pub id: String,
     pub name: String,
     pub email: String,
     pub password_hash: String,

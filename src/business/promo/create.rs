@@ -17,13 +17,14 @@ pub async fn create_promo(
     }
 
     let id = Uuid::new_v4().to_string();
-    sqlx::query (r#"
+    sqlx::query(
+        r#"
         INSERT INTO promos
-        (id, description, target, max_count, active_from, active_until, mode, promo_common, promo_unique)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        "#)
-    .bind(&id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        "#,
+    )
     .bind(create_promo.description)
+    .bind(create_promo.image_url)
     .bind(sqlx::types::Json(create_promo.target))
     .bind(create_promo.max_count)
     .bind(create_promo.active_from)
@@ -31,6 +32,12 @@ pub async fn create_promo(
     .bind(create_promo.mode)
     .bind(create_promo.promo_common)
     .bind(create_promo.promo_unique)
+    .bind(&id)
+    .bind(company.id)
+    .bind(company.name)
+    .bind(0)
+    .bind(0)
+    .bind(false)
     .execute(&pool)
     .await
     .unwrap();

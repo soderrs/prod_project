@@ -5,10 +5,30 @@ pub mod create;
 pub mod list;
 pub mod promo_by_id;
 
+#[derive(FromRow)]
 pub struct Promo {
     description: String,
     image_url: Option<String>,
-    target: Target,
+    target: Json<Target>,
+    max_count: u32,
+    active_from: Option<String>,
+    active_until: Option<String>,
+    mode: String,
+    promo_common: Option<String>,
+    promo_unique: Option<Json<Vec<String>>>,
+    promo_id: String,
+    company_id: String,
+    company_name: String,
+    like_count: u32,
+    used_count: u32,
+    active: bool,
+}
+
+#[derive(Serialize)]
+pub struct PromoReadOnly {
+    description: String,
+    image_url: Option<String>,
+    target: Json<Target>,
     max_count: u32,
     active_from: Option<String>,
     active_until: Option<String>,
@@ -23,22 +43,14 @@ pub struct Promo {
     active: bool,
 }
 
-pub struct PromoReadOnly {
-    description: String,
+#[derive(Deserialize)]
+pub struct PatchPromo {
+    description: Option<String>,
     image_url: Option<String>,
-    target: Target,
-    max_count: u32,
+    target: Option<Json<Target>>,
+    max_count: Option<u32>,
     active_from: Option<String>,
     active_until: Option<String>,
-    mode: String,
-    promo_common: Option<String>,
-    promo_unique: Option<Vec<String>>,
-    promo_id: String,
-    company_id: String,
-    company_name: String,
-    like_count: u32,
-    used_count: u32,
-    active: bool,
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
@@ -88,7 +100,7 @@ impl CreatePromo {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, FromRow)]
 struct Target {
     age_from: Option<u8>,
     age_until: Option<u8>,
