@@ -13,7 +13,7 @@ pub struct CreateCompany {
     password: String,
 }
 
-pub async fn sign_up(Json(sign_up_data): Json<CreateCompany>) -> Result<StatusCode, StatusCode> {
+pub async fn sign_up(Json(sign_up_data): Json<CreateCompany>) -> Result<(), StatusCode> {
     let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
         .await
         .unwrap();
@@ -37,7 +37,7 @@ pub async fn sign_up(Json(sign_up_data): Json<CreateCompany>) -> Result<StatusCo
     .await
     .unwrap();
 
-    Ok(StatusCode::OK)
+    Ok(())
 }
 
 async fn is_unique_company(sign_up_data: &CreateCompany) -> bool {

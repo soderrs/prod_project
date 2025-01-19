@@ -1,4 +1,7 @@
-use crate::business::{self, auth, middlewares};
+use crate::{
+    business::{self, auth, middlewares},
+    user,
+};
 use axum::{
     middleware,
     routing::{get, patch, post},
@@ -40,6 +43,7 @@ pub async fn app() -> Router {
                 middlewares::authorize::authorize_middleware,
             )),
         )
+        .route("/api/user/sign-up", post(user::auth::sign_up::sign_up))
 }
 
 async fn ping() -> Json<String> {
