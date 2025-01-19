@@ -22,9 +22,10 @@ pub struct Promo {
     like_count: u32,
     used_count: u32,
     active: bool,
+    countries: Json<Vec<Country>>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, FromRow)]
 pub struct PromoReadOnly {
     description: String,
     image_url: Option<String>,
@@ -34,7 +35,7 @@ pub struct PromoReadOnly {
     active_until: Option<String>,
     mode: String,
     promo_common: Option<String>,
-    promo_unique: Option<Vec<String>>,
+    promo_unique: Option<Json<Vec<String>>>,
     promo_id: String,
     company_id: String,
     company_name: String,
@@ -51,6 +52,12 @@ pub struct PatchPromo {
     max_count: Option<u32>,
     active_from: Option<String>,
     active_until: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct PromoStat {
+    activate_count: u32,
+    countries: Json<Vec<Country>>,
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
@@ -106,4 +113,10 @@ struct Target {
     age_until: Option<u8>,
     country: Option<String>,
     categories: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize, FromRow)]
+struct Country {
+    name: String,
+    activate_count: u32,
 }

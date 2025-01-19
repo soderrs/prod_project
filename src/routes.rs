@@ -17,6 +17,12 @@ pub async fn app() -> Router {
             )),
         )
         .route(
+            "/api/business/promo",
+            get(business::promo::list::list_promos).layer(middleware::from_fn(
+                middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
             "/api/business/promo/{id}",
             get(business::promo::promo_by_id::get_promo).layer(middleware::from_fn(
                 middlewares::authorize::authorize_middleware,
@@ -25,6 +31,12 @@ pub async fn app() -> Router {
         .route(
             "/api/business/promo/{id}",
             patch(business::promo::promo_by_id::edit_promo).layer(middleware::from_fn(
+                middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/business/promo/{id}/stat",
+            get(business::promo::promo_by_id::get_promo_stat).layer(middleware::from_fn(
                 middlewares::authorize::authorize_middleware,
             )),
         )

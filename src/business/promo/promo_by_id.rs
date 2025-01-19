@@ -5,7 +5,7 @@ use sqlx::SqlitePool;
 
 use crate::business::auth::Company;
 
-use super::{PatchPromo, Promo, PromoReadOnly};
+use super::{PatchPromo, Promo, PromoReadOnly, PromoStat};
 
 pub async fn get_promo(
     Extension(company): Extension<Company>,
@@ -40,7 +40,7 @@ pub async fn get_promo(
         active_until: promo.active_until,
         mode: promo.mode,
         promo_common: promo.promo_common,
-        promo_unique: Some(promo.promo_unique.unwrap_or_default().0),
+        promo_unique: Some(promo.promo_unique.unwrap_or_default()),
         promo_id: promo.promo_id,
         company_id: promo.company_id,
         company_name: promo.company_name,
@@ -64,7 +64,7 @@ pub async fn edit_promo(
         SELECT * FROM promos WHERE promo_id = ?
     "#,
     )
-    .bind(id)
+    .bind(&id)
     .fetch_optional(&pool)
     .await
     .unwrap();
@@ -96,7 +96,7 @@ pub async fn edit_promo(
 
     sqlx::query(r#"
         UPDATE promos
-        SET description = ?, image_url = ?, target = ?, max_count = ?, active_from = ?, active_until = ?,
+        SET description = ?, image_url = ?, target = ?, max_count = ?, active_from = ?, active_until = ?
         WHERE promo_id = ?
         "#)
     .bind(&promo.description)
@@ -104,7 +104,11 @@ pub async fn edit_promo(
     .bind(&promo.target)
     .bind(promo.max_count)
     .bind(&promo.active_from)
-    .bind(&promo.active_until).fetch_optional(&pool).await.unwrap();
+    .bind(&promo.active_until)
+    .bind(id)
+    .fetch_optional(&pool)
+    .await
+    .unwrap();
 
     Ok(Json(PromoReadOnly {
         description: promo.description,
@@ -115,12 +119,44 @@ pub async fn edit_promo(
         active_until: promo.active_until,
         mode: promo.mode,
         promo_common: promo.promo_common,
-        promo_unique: Some(promo.promo_unique.unwrap_or_default().0),
+        promo_unique: Some(promo.promo_unique.unwrap_or_default()),
         promo_id: promo.promo_id,
         company_id: promo.company_id,
         company_name: promo.company_name,
         like_count: promo.like_count,
         used_count: promo.used_count,
         active: promo.active,
+    }))
+}
+
+pub async fn get_promo_stat(
+    Extension(company): Extension<Company>,
+    Path(id): Path<String>,
+) -> Result<Json<PromoStat>, StatusCode> {
+    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
+        .await
+        .unwrap();
+
+    let promo: Option<Promo> = sqlx::query_as(
+        r#"
+        SELECT * FROM promos WHERE promo_id = ?
+        "#,
+    )
+    .bind(id)
+    .fetch_optional(&pool)
+    .await
+    .unwrap();
+
+    if promo.is_none() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let promo = promo.unwrap();
+    if promo.company_id != company.id {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    Ok(Json(PromoStat {
+        activate_count: promo.used_count,
+        countries: promo.countries,
     }))
 }

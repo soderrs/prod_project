@@ -4,6 +4,8 @@ use sqlx::SqlitePool;
 use std::env;
 use uuid::Uuid;
 
+use super::Country;
+
 pub async fn create_promo(
     Extension(company): Extension<Company>,
     Json(create_promo): Json<CreatePromo>,
@@ -20,7 +22,7 @@ pub async fn create_promo(
     sqlx::query(
         r#"
         INSERT INTO promos
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(create_promo.description)
@@ -38,6 +40,7 @@ pub async fn create_promo(
     .bind(0)
     .bind(0)
     .bind(false)
+    .bind(sqlx::types::Json(Vec::<Country>::new()))
     .execute(&pool)
     .await
     .unwrap();
