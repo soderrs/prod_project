@@ -1,10 +1,14 @@
+use super::Country;
 use crate::business::{auth::Company, promo::CreatePromo};
 use axum::{http::StatusCode, Extension, Json};
-use sqlx::SqlitePool;
+use sqlx::{prelude::FromRow, SqlitePool};
 use std::env;
 use uuid::Uuid;
 
-use super::Country;
+#[derive(FromRow, PartialEq)]
+struct Id {
+    id: String,
+}
 
 pub async fn create_promo(
     Extension(company): Extension<Company>,
@@ -17,8 +21,19 @@ pub async fn create_promo(
     if !create_promo.is_valid() {
         return Err(StatusCode::BAD_REQUEST);
     }
+    let ids: Vec<Id> = sqlx::query_as(
+        r#"
+        SELECT promo_id FROM promos
+        "#,
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    let mut id = Uuid::new_v4().to_string();
 
-    let id = Uuid::new_v4().to_string();
+    while ids.contains(&Id { id: id.clone() }) {
+        id = Uuid::new_v4().to_string();
+    }
     sqlx::query(
         r#"
         INSERT INTO promos
