@@ -24,7 +24,7 @@ pub struct Company {
     pub password_hash: String,
 }
 
-pub async fn retrieve_user_by_email(email: &str) -> Option<Company> {
+pub async fn retrieve_company_by_email(email: &str) -> Option<Company> {
     let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
         .await
         .unwrap();

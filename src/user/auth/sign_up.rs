@@ -1,5 +1,4 @@
-use super::CreateUser;
-use crate::business::auth::hash_password;
+use crate::user::{middlewares::authorize::hash_password, CreateUser};
 use axum::{http::StatusCode, Json};
 use sqlx::SqlitePool;
 use std::env;

@@ -1,4 +1,4 @@
-use crate::business::auth::{decode_jwt, retrieve_user_by_email};
+use crate::business::auth::{decode_jwt, retrieve_company_by_email};
 use axum::{
     body::Body,
     extract::Request,
@@ -24,7 +24,7 @@ pub async fn authorize_middleware(
         Err(_) => return Err(StatusCode::UNAUTHORIZED),
     };
 
-    let company = match retrieve_user_by_email(&token_data.claims.email).await {
+    let company = match retrieve_company_by_email(&token_data.claims.email).await {
         Some(company) => company,
         None => return Err(StatusCode::UNAUTHORIZED),
     };
