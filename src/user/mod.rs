@@ -25,6 +25,53 @@ pub struct User {
     password_hash: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct PatchUser {
+    name: Option<String>,
+    surname: Option<String>,
+    avatar_url: Option<String>,
+    password: Option<String>,
+}
+
+impl PatchUser {
+    pub fn is_valid(&self) -> bool {
+        if let Some(ref name) = self.name {
+            if name.len() < 1 || name.len() > 100 {
+                return false;
+            }
+        }
+        if let Some(ref surname) = self.surname {
+            if surname.len() < 1 || surname.len() > 120 {
+                return false;
+            }
+        }
+
+        if self.avatar_url.is_some() && self.avatar_url.as_ref().unwrap().len() > 350 {
+            return false;
+        }
+        if let Some(ref password) = self.password {
+            let mut has_whitespace = false;
+            let mut has_upper = false;
+            let mut has_lower = false;
+            let mut has_digit = false;
+            for c in password.chars() {
+                has_whitespace |= c.is_whitespace();
+                has_lower |= c.is_lowercase();
+                has_upper |= c.is_uppercase();
+                has_digit |= c.is_digit(10);
+            }
+
+            return !has_whitespace
+                && has_upper
+                && has_lower
+                && has_digit
+                && password.len() >= 8
+                && password.len() <= 60;
+        }
+        true
+    }
+}
+
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct CreateUser {
     name: String,

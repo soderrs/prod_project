@@ -1,11 +1,8 @@
-use std::env;
-
+use super::{PatchPromo, Promo, PromoReadOnly, PromoStat};
+use crate::business::auth::Company;
 use axum::{extract::Path, http::StatusCode, Extension, Json};
 use sqlx::SqlitePool;
-
-use crate::business::auth::Company;
-
-use super::{PatchPromo, Promo, PromoReadOnly, PromoStat};
+use std::env;
 
 pub async fn get_promo(
     Extension(company): Extension<Company>,

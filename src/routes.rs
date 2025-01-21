@@ -46,14 +46,17 @@ pub async fn app() -> Router {
                 business::middlewares::authorize::authorize_middleware,
             )),
         )
-        .route("/api/user/sign-up", post(user::auth::sign_up::sign_up))
-        .route("/api/user/sign-in", post(user::auth::sign_in::sign_in))
+        .route("/api/user/auth/sign-up", post(user::auth::sign_up::sign_up))
+        .route("/api/user/auth/sign-in", post(user::auth::sign_in::sign_in))
         .route(
             "/api/user/profile",
             get(user::profile::get_profile).layer(middleware::from_fn(
                 user::middlewares::authorize::authorize_middleware,
             )),
         )
+        .route("/api/user/profile", patch(user::profile::edit_profile).layer(middleware::from_fn(
+            user::middlewares::authorize::authorize_middleware
+        )))
 }
 
 async fn ping() -> Json<String> {
