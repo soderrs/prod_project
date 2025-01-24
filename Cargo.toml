@@ -22,3 +22,9 @@ uuid = { version = "1.12.0", features = [
     "fast-rng",
     "macro-diagnostics",
 ] }
+
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = "debuginfo"

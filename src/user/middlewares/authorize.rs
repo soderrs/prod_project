@@ -2,7 +2,7 @@ use std::env;
 
 use axum::{
     body::Body,
-    extract::Request,
+    extract::{Request, State},
     http::{self, Response, StatusCode},
     middleware::Next,
 };
@@ -12,9 +12,10 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::user::User;
+use crate::{user::User, AppState};
 
 pub async fn authorize_middleware(
+    State(app_state): State<AppState>,
     mut req: Request,
     next: Next,
 ) -> Result<Response<Body>, StatusCode> {
@@ -32,7 +33,7 @@ pub async fn authorize_middleware(
         Err(_) => return Err(StatusCode::UNAUTHORIZED),
     };
 
-    let user = match retrieve_user_by_email(&token_data.claims.email).await {
+    let user = match retrieve_user_by_email(&app_state.pool, &token_data.claims.email).await {
         Some(user) => user,
         None => return Err(StatusCode::UNAUTHORIZED),
     };
@@ -48,18 +49,14 @@ pub struct Claims {
     pub email: String,
 }
 
-pub async fn retrieve_user_by_email(email: &str) -> Option<User> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
+pub async fn retrieve_user_by_email(pool: &SqlitePool, email: &str) -> Option<User> {
     let user = sqlx::query_as(
         r#"
         SELECT * FROM users WHERE email = ?
         "#,
     )
     .bind(email)
-    .fetch_optional(&pool)
+    .fetch_optional(pool)
     .await
     .unwrap();
 

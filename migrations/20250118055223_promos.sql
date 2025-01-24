@@ -11,8 +11,11 @@ CREATE TABLE promos (
     promo_id TEXT NOT NULL,
     company_id TEXT NOT NULL,
     company_name TEXT NOT NULL,
-    like_count INTEGER NOT NULL,
-    used_count INTEGER NOT NULL,
-    active BOOLEAN NOT NULL,
-    countries JSON NOT NULL
+    likes JSON,
+    used_count INTEGER ,
+    active BOOLEAN ,
+    countries JSON,
+    comments JSON,
+    activated_users JSON 
 );
+

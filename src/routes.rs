@@ -1,11 +1,12 @@
-use crate::{business, user};
+use crate::{business, user, AppState};
 use axum::{
+    handler::Handler,
     middleware,
-    routing::{get, patch, post},
+    routing::{delete, get, patch, post},
     Json, Router,
 };
 
-pub async fn app() -> Router {
+pub async fn app(state: AppState) -> Router {
     Router::new()
         .route("/api/ping", get(ping))
         .route(
@@ -18,45 +19,107 @@ pub async fn app() -> Router {
         )
         .route(
             "/api/business/promo",
-            post(business::promo::create::create_promo).layer(middleware::from_fn(
+            post(business::promo::create::create_promo).layer(middleware::from_fn_with_state(
+                state.clone(),
                 business::middlewares::authorize::authorize_middleware,
             )),
         )
         .route(
             "/api/business/promo",
-            get(business::promo::list::list_promos).layer(middleware::from_fn(
+            get(business::promo::list::list_promos).layer(middleware::from_fn_with_state(
+                state.clone(),
                 business::middlewares::authorize::authorize_middleware,
             )),
         )
         .route(
             "/api/business/promo/{id}",
-            get(business::promo::promo_by_id::get_promo).layer(middleware::from_fn(
+            get(business::promo::promo_by_id::get_promo).layer(middleware::from_fn_with_state(
+                state.clone(),
                 business::middlewares::authorize::authorize_middleware,
             )),
         )
         .route(
             "/api/business/promo/{id}",
-            patch(business::promo::promo_by_id::edit_promo).layer(middleware::from_fn(
+            patch(business::promo::promo_by_id::edit_promo).layer(middleware::from_fn_with_state(
+                state.clone(),
                 business::middlewares::authorize::authorize_middleware,
             )),
         )
         .route(
             "/api/business/promo/{id}/stat",
-            get(business::promo::promo_by_id::get_promo_stat).layer(middleware::from_fn(
-                business::middlewares::authorize::authorize_middleware,
-            )),
+            get(business::promo::promo_by_id::get_promo_stat).layer(
+                middleware::from_fn_with_state(
+                    state.clone(),
+                    business::middlewares::authorize::authorize_middleware,
+                ),
+            ),
         )
         .route("/api/user/auth/sign-up", post(user::auth::sign_up::sign_up))
         .route("/api/user/auth/sign-in", post(user::auth::sign_in::sign_in))
         .route(
             "/api/user/profile",
-            get(user::profile::get_profile).layer(middleware::from_fn(
+            get(user::profile::get_profile).layer(middleware::from_fn_with_state(
+                state.clone(),
                 user::middlewares::authorize::authorize_middleware,
             )),
         )
-        .route("/api/user/profile", patch(user::profile::edit_profile).layer(middleware::from_fn(
-            user::middlewares::authorize::authorize_middleware
-        )))
+        .route(
+            "/api/user/profile",
+            patch(user::profile::edit_profile).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/feed",
+            get(user::feed::promo_feed).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/promo/{id}",
+            get(user::promo::get_promo).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/promo/{id}/like",
+            post(user::promo::like::add_like).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/promo/{id}/like",
+            delete(user::promo::like::remove_like).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/promo/{id}/comments",
+            post(user::promo::comments::add_comment).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/promo/{id}/comments",
+            get(user::promo::comments::get_comments).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/promo/{promo_id}/comments/{comment_id}",
+            get(user::promo::comments::get_comment_by_id).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .with_state(state)
 }
 
 async fn ping() -> Json<String> {

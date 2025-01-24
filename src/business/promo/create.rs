@@ -1,8 +1,10 @@
-use super::Country;
-use crate::business::{auth::Company, promo::CreatePromo};
-use axum::{http::StatusCode, Extension, Json};
-use sqlx::{prelude::FromRow, SqlitePool};
-use std::env;
+use super::{Comment, Country};
+use crate::{
+    business::{auth::Company, promo::CreatePromo},
+    AppState,
+};
+use axum::{extract::State, http::StatusCode, Extension, Json};
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 #[derive(FromRow, PartialEq)]
@@ -11,13 +13,10 @@ struct Id {
 }
 
 pub async fn create_promo(
+    State(app_state): State<AppState>,
     Extension(company): Extension<Company>,
     Json(create_promo): Json<CreatePromo>,
 ) -> Result<(StatusCode, Json<String>), StatusCode> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
     if !create_promo.is_valid() {
         return Err(StatusCode::BAD_REQUEST);
     }
@@ -26,7 +25,7 @@ pub async fn create_promo(
         SELECT promo_id FROM promos
         "#,
     )
-    .fetch_all(&pool)
+    .fetch_all(&app_state.pool)
     .await
     .unwrap();
     let mut id = Uuid::new_v4().to_string();
@@ -37,7 +36,7 @@ pub async fn create_promo(
     sqlx::query(
         r#"
         INSERT INTO promos
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(create_promo.description)
@@ -52,11 +51,13 @@ pub async fn create_promo(
     .bind(&id)
     .bind(company.id)
     .bind(company.name)
-    .bind(0)
+    .bind(sqlx::types::Json(Vec::<String>::new()))
     .bind(0)
     .bind(false)
     .bind(sqlx::types::Json(Vec::<Country>::new()))
-    .execute(&pool)
+    .bind(sqlx::types::Json(Vec::<Comment>::new()))
+    .bind(sqlx::types::Json(Vec::<String>::new()))
+    .execute(&app_state.pool)
     .await
     .unwrap();
 

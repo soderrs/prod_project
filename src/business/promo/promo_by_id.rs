@@ -1,17 +1,16 @@
 use super::{PatchPromo, Promo, PromoReadOnly, PromoStat};
-use crate::business::auth::Company;
-use axum::{extract::Path, http::StatusCode, Extension, Json};
-use sqlx::SqlitePool;
-use std::env;
+use crate::{business::auth::Company, AppState};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Extension, Json,
+};
 
 pub async fn get_promo(
+    State(app_state): State<AppState>,
     Extension(company): Extension<Company>,
     Path(id): Path<String>,
 ) -> Result<Json<PromoReadOnly>, StatusCode> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
     let promo: Option<Promo> = sqlx::query_as(
         r#"
         SELECT * FROM promos WHERE promo_id = ? AND company_id = ?
@@ -19,7 +18,7 @@ pub async fn get_promo(
     )
     .bind(id)
     .bind(&company.id)
-    .fetch_optional(&pool)
+    .fetch_optional(&app_state.pool)
     .await
     .unwrap();
 
@@ -41,28 +40,25 @@ pub async fn get_promo(
         promo_id: promo.promo_id,
         company_id: promo.company_id,
         company_name: promo.company_name,
-        like_count: promo.like_count,
+        like_count: promo.likes.0.len() as u32,
         used_count: promo.used_count,
         active: promo.active,
     }))
 }
 
 pub async fn edit_promo(
+    State(app_state): State<AppState>,
     Extension(company): Extension<Company>,
     Path(id): Path<String>,
     Json(patch_promo): Json<PatchPromo>,
 ) -> Result<Json<PromoReadOnly>, StatusCode> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
     let promo: Option<Promo> = sqlx::query_as(
         r#"
         SELECT * FROM promos WHERE promo_id = ?
     "#,
     )
     .bind(&id)
-    .fetch_optional(&pool)
+    .fetch_optional(&app_state.pool)
     .await
     .unwrap();
 
@@ -82,14 +78,12 @@ pub async fn edit_promo(
         .then_some(patch_promo.image_url.unwrap());
     promo.target = patch_promo.target.unwrap_or(promo.target);
     promo.max_count = patch_promo.max_count.unwrap_or(promo.max_count);
-    promo.active_from = patch_promo
-        .active_from
-        .is_some()
-        .then_some(patch_promo.active_from.unwrap());
-    promo.active_until = patch_promo
-        .active_until
-        .is_some()
-        .then_some(patch_promo.active_until.unwrap());
+    if let Some(_) = patch_promo.active_from {
+        promo.active_from = patch_promo.active_from;
+    }
+    if let Some(_) = patch_promo.active_until {
+        promo.active_until = patch_promo.active_until
+    }
 
     sqlx::query(r#"
         UPDATE promos
@@ -103,7 +97,7 @@ pub async fn edit_promo(
     .bind(&promo.active_from)
     .bind(&promo.active_until)
     .bind(id)
-    .fetch_optional(&pool)
+    .fetch_optional(&app_state.pool)
     .await
     .unwrap();
 
@@ -120,27 +114,24 @@ pub async fn edit_promo(
         promo_id: promo.promo_id,
         company_id: promo.company_id,
         company_name: promo.company_name,
-        like_count: promo.like_count,
+        like_count: promo.likes.0.len() as u32,
         used_count: promo.used_count,
         active: promo.active,
     }))
 }
 
 pub async fn get_promo_stat(
+    State(app_state): State<AppState>,
     Extension(company): Extension<Company>,
     Path(id): Path<String>,
 ) -> Result<Json<PromoStat>, StatusCode> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
     let promo: Option<Promo> = sqlx::query_as(
         r#"
         SELECT * FROM promos WHERE promo_id = ?
         "#,
     )
     .bind(id)
-    .fetch_optional(&pool)
+    .fetch_optional(&app_state.pool)
     .await
     .unwrap();
 

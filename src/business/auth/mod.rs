@@ -24,18 +24,14 @@ pub struct Company {
     pub password_hash: String,
 }
 
-pub async fn retrieve_company_by_email(email: &str) -> Option<Company> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
+pub async fn retrieve_company_by_email(pool: &SqlitePool, email: &str) -> Option<Company> {
     let company = sqlx::query_as(
         r#"
         SELECT * FROM companies WHERE email = ?
         "#,
     )
     .bind(email)
-    .fetch_optional(&pool)
+    .fetch_optional(pool)
     .await
     .unwrap();
 

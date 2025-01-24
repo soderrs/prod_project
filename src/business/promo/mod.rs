@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, types::Json};
 
@@ -7,22 +9,24 @@ pub mod promo_by_id;
 
 #[derive(FromRow)]
 pub struct Promo {
-    description: String,
-    image_url: Option<String>,
-    target: Json<Target>,
-    max_count: u32,
-    active_from: Option<String>,
-    active_until: Option<String>,
-    mode: String,
-    promo_common: Option<String>,
-    promo_unique: Option<Json<Vec<String>>>,
-    promo_id: String,
-    company_id: String,
-    company_name: String,
-    like_count: u32,
-    used_count: u32,
-    active: bool,
-    countries: Json<Vec<Country>>,
+    pub description: String,
+    pub image_url: Option<String>,
+    pub target: Json<Target>,
+    pub max_count: u32,
+    pub active_from: Option<String>,
+    pub active_until: Option<String>,
+    pub mode: String,
+    pub promo_common: Option<String>,
+    pub promo_unique: Option<Json<Vec<String>>>,
+    pub promo_id: String,
+    pub company_id: String,
+    pub company_name: String,
+    pub likes: Json<HashSet<String>>,
+    pub used_count: u32,
+    pub active: bool,
+    pub countries: Json<Vec<Country>>,
+    pub comments: Json<HashSet<Comment>>,
+    pub activated_users: Json<HashSet<String>>,
 }
 
 #[derive(Serialize, FromRow)]
@@ -42,6 +46,20 @@ pub struct PromoReadOnly {
     like_count: u32,
     used_count: u32,
     active: bool,
+}
+
+#[derive(Serialize)]
+pub struct PromoForUser {
+    pub promo_id: String,
+    pub company_id: String,
+    pub company_name: String,
+    pub description: String,
+    pub image_url: Option<String>,
+    pub active: bool,
+    pub is_activated_by_user: bool,
+    pub like_count: u32,
+    pub is_liked_by_user: bool,
+    pub comment_count: u32,
 }
 
 #[derive(Deserialize)]
@@ -108,7 +126,7 @@ impl CreatePromo {
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
-struct Target {
+pub struct Target {
     age_from: Option<u8>,
     age_until: Option<u8>,
     country: Option<String>,
@@ -116,7 +134,22 @@ struct Target {
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
-struct Country {
+pub struct Country {
     name: String,
     activate_count: u32,
+}
+
+#[derive(Clone, Serialize, Deserialize, FromRow, Hash, PartialEq, Eq)]
+pub struct Comment {
+    pub id: String,
+    pub text: String,
+    pub date: String,
+    pub author: CommentAuthor,
+}
+
+#[derive(Clone, Serialize, Deserialize, FromRow, Hash, PartialEq, Eq)]
+pub struct CommentAuthor {
+    pub name: String,
+    pub surname: String,
+    pub avatar_url: Option<String>,
 }

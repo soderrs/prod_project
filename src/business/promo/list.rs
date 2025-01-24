@@ -1,17 +1,16 @@
 use super::{Promo, PromoReadOnly};
-use crate::business::auth::Company;
-use axum::{extract::Query, http::StatusCode, Extension, Json};
-use sqlx::SqlitePool;
-use std::env;
+use crate::{business::auth::Company, AppState};
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    Extension, Json,
+};
 
 pub async fn list_promos(
+    State(app_state): State<AppState>,
     Extension(company): Extension<Company>,
     Query(params): Query<Vec<(String, String)>>,
 ) -> Result<Json<Vec<PromoReadOnly>>, StatusCode> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
     let mut countries = vec![];
 
     for param in params {
@@ -26,7 +25,7 @@ pub async fn list_promos(
         "#,
     )
     .bind(company.id)
-    .fetch_all(&pool)
+    .fetch_all(&app_state.pool)
     .await
     .unwrap();
 
@@ -35,6 +34,7 @@ pub async fn list_promos(
         .filter(|promo| {
             promo.target.0.country.is_none()
                 || countries.contains(&promo.target.0.country.as_ref().unwrap())
+                || countries.is_empty()
         })
         .collect();
 
@@ -53,7 +53,7 @@ pub async fn list_promos(
             promo_id: promo.promo_id,
             company_id: promo.company_id,
             company_name: promo.company_name,
-            like_count: promo.like_count,
+            like_count: promo.likes.0.len() as u32,
             used_count: promo.used_count,
             active: promo.active,
         })

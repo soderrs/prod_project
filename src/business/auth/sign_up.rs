@@ -1,9 +1,11 @@
-use crate::business::auth::{hash_password, Company};
-use axum::{http::StatusCode, Json};
+use crate::{
+    business::auth::{hash_password, Company},
+    AppState,
+};
+use axum::{extract::State, http::StatusCode, Json};
 use regex::Regex;
 use serde::Deserialize;
 use sqlx::SqlitePool;
-use std::env;
 use uuid::Uuid;
 
 #[derive(Deserialize, Debug)]
@@ -13,14 +15,14 @@ pub struct CreateCompany {
     password: String,
 }
 
-pub async fn sign_up(Json(sign_up_data): Json<CreateCompany>) -> Result<(), StatusCode> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
+pub async fn sign_up(
+    State(app_state): State<AppState>,
+    Json(sign_up_data): Json<CreateCompany>,
+) -> Result<(), StatusCode> {
     if !is_valid_sign_up_data(&sign_up_data) {
         return Err(StatusCode::BAD_REQUEST);
     }
-    if !is_unique_company(&sign_up_data).await {
+    if !is_unique_company(&app_state.pool, &sign_up_data).await {
         return Err(StatusCode::CONFLICT);
     }
     let id = Uuid::new_v4().to_string();
@@ -33,25 +35,21 @@ pub async fn sign_up(Json(sign_up_data): Json<CreateCompany>) -> Result<(), Stat
     .bind(sign_up_data.name)
     .bind(sign_up_data.email)
     .bind(hash_password(&sign_up_data.password).unwrap())
-    .execute(&pool)
+    .execute(&app_state.pool)
     .await
     .unwrap();
 
     Ok(())
 }
 
-async fn is_unique_company(sign_up_data: &CreateCompany) -> bool {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
+async fn is_unique_company(pool: &SqlitePool, sign_up_data: &CreateCompany) -> bool {
     let row: Option<Company> = sqlx::query_as(
         r#"
         SELECT * FROM companies WHERE email = ?
         "#,
     )
     .bind(&sign_up_data.email)
-    .fetch_optional(&pool)
+    .fetch_optional(pool)
     .await
     .unwrap();
 

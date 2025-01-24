@@ -3,8 +3,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
 pub mod auth;
+pub mod feed;
 pub mod middlewares;
 pub mod profile;
+pub mod promo;
 
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct UserProfile {

@@ -1,8 +1,11 @@
-use axum::{http::StatusCode, Json};
+use axum::{extract::State, http::StatusCode, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::user::middlewares::authorize::{encode_jwt, retrieve_user_by_email, verify_password};
+use crate::{
+    user::middlewares::authorize::{encode_jwt, retrieve_user_by_email, verify_password},
+    AppState,
+};
 
 #[derive(Deserialize)]
 pub struct SignInData {
@@ -10,8 +13,11 @@ pub struct SignInData {
     pub password: String,
 }
 
-pub async fn sign_in(Json(sign_in_data): Json<SignInData>) -> Result<Json<Value>, StatusCode> {
-    let user = match retrieve_user_by_email(&sign_in_data.email).await {
+pub async fn sign_in(
+    State(app_state): State<AppState>,
+    Json(sign_in_data): Json<SignInData>,
+) -> Result<Json<Value>, StatusCode> {
+    let user = match retrieve_user_by_email(&app_state.pool, &sign_in_data.email).await {
         Some(user) => user,
         None => return Err(StatusCode::UNAUTHORIZED),
     };

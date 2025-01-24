@@ -1,26 +1,18 @@
-use std::env;
-
-use axum::{http::StatusCode, Extension, Json};
-use sqlx::SqlitePool;
-
-use crate::business::auth::hash_password;
-
 use super::{PatchUser, User, UserProfile};
+use crate::{business::auth::hash_password, AppState};
+use axum::{extract::State, http::StatusCode, Extension, Json};
 
 pub async fn get_profile(
+    State(app_state): State<AppState>,
     Extension(user): Extension<User>,
 ) -> Result<Json<UserProfile>, StatusCode> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
     let user_profile: UserProfile = sqlx::query_as(
         r#"
         SELECT * FROM users WHERE email = ?
         "#,
     )
     .bind(user.email)
-    .fetch_one(&pool)
+    .fetch_one(&app_state.pool)
     .await
     .unwrap();
 
@@ -28,13 +20,10 @@ pub async fn get_profile(
 }
 
 pub async fn edit_profile(
+    State(app_state): State<AppState>,
     Extension(user): Extension<User>,
     Json(patch_user): Json<PatchUser>,
 ) -> Result<Json<UserProfile>, StatusCode> {
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
-
     if !patch_user.is_valid() {
         return Err(StatusCode::BAD_REQUEST);
     }
@@ -55,7 +44,7 @@ pub async fn edit_profile(
         user.password_hash
     })
     .bind(&user.email)
-    .execute(&pool)
+    .execute(&app_state.pool)
     .await
     .unwrap();
 
@@ -65,7 +54,7 @@ pub async fn edit_profile(
         "#,
     )
     .bind(user.email)
-    .fetch_one(&pool)
+    .fetch_one(&app_state.pool)
     .await
     .unwrap();
 
