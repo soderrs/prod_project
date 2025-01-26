@@ -4,6 +4,8 @@ use crate::{
     AppState,
 };
 use axum::{extract::State, http::StatusCode, Extension, Json};
+use chrono::Utc;
+use serde_json::json;
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
@@ -16,33 +18,27 @@ pub async fn create_promo(
     State(app_state): State<AppState>,
     Extension(company): Extension<Company>,
     Json(create_promo): Json<CreatePromo>,
-) -> Result<(StatusCode, Json<String>), StatusCode> {
+) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     if !create_promo.is_valid() {
         return Err(StatusCode::BAD_REQUEST);
     }
-    let ids: Vec<Id> = sqlx::query_as(
-        r#"
-        SELECT promo_id FROM promos
-        "#,
-    )
-    .fetch_all(&app_state.pool)
-    .await
-    .unwrap();
-    let mut id = Uuid::new_v4().to_string();
+    let id = Uuid::new_v4().to_string();
 
-    while ids.contains(&Id { id: id.clone() }) {
-        id = Uuid::new_v4().to_string();
-    }
     sqlx::query(
         r#"
         INSERT INTO promos
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(create_promo.description)
     .bind(create_promo.image_url)
     .bind(sqlx::types::Json(create_promo.target))
-    .bind(create_promo.max_count)
+    .bind(if let Some(max_count) = create_promo.max_count {
+        Some(max_count as i32)
+    } else {
+        None
+    })
+    .bind(sqlx::types::Json(Utc::now()))
     .bind(create_promo.active_from)
     .bind(create_promo.active_until)
     .bind(create_promo.mode)
@@ -61,5 +57,10 @@ pub async fn create_promo(
     .await
     .unwrap();
 
-    Ok((StatusCode::CREATED, Json(id)))
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({
+            "id": id,
+        })),
+    ))
 }

@@ -19,6 +19,7 @@ pub struct UserProfile {
 
 #[derive(Serialize, Deserialize, FromRow, Clone)]
 pub struct User {
+    id: String,
     name: String,
     surname: String,
     email: String,
@@ -38,12 +39,12 @@ pub struct PatchUser {
 impl PatchUser {
     pub fn is_valid(&self) -> bool {
         if let Some(ref name) = self.name {
-            if name.len() < 1 || name.len() > 100 {
+            if name.chars().count() < 1 || name.chars().count() > 100 {
                 return false;
             }
         }
         if let Some(ref surname) = self.surname {
-            if surname.len() < 1 || surname.len() > 120 {
+            if surname.chars().count() < 1 || surname.chars().count() > 120 {
                 return false;
             }
         }
@@ -67,8 +68,8 @@ impl PatchUser {
                 && has_upper
                 && has_lower
                 && has_digit
-                && password.len() >= 8
-                && password.len() <= 60;
+                && password.chars().count() >= 8
+                && password.chars().count() <= 60;
         }
         true
     }
@@ -86,13 +87,16 @@ pub struct CreateUser {
 
 impl CreateUser {
     pub fn is_valid(&self) -> bool {
-        if self.name.len() < 1 || self.name.len() > 100 {
+        if self.name.chars().count() < 1 || self.name.chars().count() > 100 {
             return false;
         }
-        if self.surname.len() < 1 || self.surname.len() > 120 {
+        if self.surname.chars().count() < 1 || self.surname.chars().count() > 120 {
             return false;
         }
-        let email_regex = Regex::new(r"[a-z0-9_+]([a-z0-9_+.]*[a-z0-9_+])?").unwrap();
+        let email_regex = Regex::new(
+            r"^([a-z0-9_+]([a-z0-9_+.]*[a-z0-9_+])?)@([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6})",
+        )
+        .unwrap();
         if !email_regex.is_match(&self.email) {
             return false;
         }
@@ -118,14 +122,14 @@ impl CreateUser {
             && has_upper
             && has_lower
             && has_digit
-            && self.password.len() >= 8
-            && self.password.len() <= 60
+            && self.password.chars().count() >= 8
+            && self.password.chars().count() <= 60
     }
 }
 
 #[derive(Serialize, Deserialize, FromRow, Clone)]
 struct UserTargetSettings {
-    age: i32,
+    age: i8,
     country: String,
 }
 
@@ -134,7 +138,7 @@ impl UserTargetSettings {
         if self.age < 0 || self.age > 100 {
             return false;
         }
-        if self.country.len() != 2 {
+        if self.country.chars().count() != 2 {
             return false;
         }
         true

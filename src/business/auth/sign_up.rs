@@ -1,11 +1,13 @@
 use crate::{
     business::auth::{hash_password, Company},
+    user::middlewares::authorize::encode_jwt,
     AppState,
 };
 use axum::{extract::State, http::StatusCode, Json};
 use regex::Regex;
 use serde::Deserialize;
-use sqlx::SqlitePool;
+use serde_json::json;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[derive(Deserialize, Debug)]
@@ -18,7 +20,7 @@ pub struct CreateCompany {
 pub async fn sign_up(
     State(app_state): State<AppState>,
     Json(sign_up_data): Json<CreateCompany>,
-) -> Result<(), StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     if !is_valid_sign_up_data(&sign_up_data) {
         return Err(StatusCode::BAD_REQUEST);
     }
@@ -31,18 +33,23 @@ pub async fn sign_up(
         INSERT INTO companies VALUES (?, ?, ?, ?)
         "#,
     )
-    .bind(id)
+    .bind(&id)
     .bind(sign_up_data.name)
-    .bind(sign_up_data.email)
+    .bind(&sign_up_data.email)
     .bind(hash_password(&sign_up_data.password).unwrap())
     .execute(&app_state.pool)
     .await
     .unwrap();
 
-    Ok(())
+    let token = encode_jwt(sign_up_data.email).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({
+        "company_id": id,
+        "token": token
+    })))
 }
 
-async fn is_unique_company(pool: &SqlitePool, sign_up_data: &CreateCompany) -> bool {
+async fn is_unique_company(pool: &PgPool, sign_up_data: &CreateCompany) -> bool {
     let row: Option<Company> = sqlx::query_as(
         r#"
         SELECT * FROM companies WHERE email = ?
@@ -57,12 +64,19 @@ async fn is_unique_company(pool: &SqlitePool, sign_up_data: &CreateCompany) -> b
 }
 
 fn is_valid_sign_up_data(sign_up_data: &CreateCompany) -> bool {
-    let email_regex = Regex::new(r"[a-z0-9_+]([a-z0-9_+.]*[a-z0-9_+])?").unwrap();
+    let email_regex = Regex::new(
+        r"^([a-z0-9_+]([a-z0-9_+.]*[a-z0-9_+])?)@([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6})",
+    )
+    .unwrap();
 
     let mut has_whitespace = false;
     let mut has_upper = false;
     let mut has_lower = false;
     let mut has_digit = false;
+
+    if sign_up_data.name.chars().count() < 5 || sign_up_data.name.chars().count() > 50 {
+        return false;
+    }
 
     for c in sign_up_data.password.chars() {
         has_whitespace |= c.is_whitespace();
@@ -74,11 +88,10 @@ fn is_valid_sign_up_data(sign_up_data: &CreateCompany) -> bool {
     if !email_regex.is_match(&sign_up_data.email) {
         return false;
     }
-
     !has_whitespace
         && has_upper
         && has_lower
         && has_digit
-        && sign_up_data.password.len() >= 8
-        && sign_up_data.password.len() <= 60
+        && (sign_up_data.password.chars().count() >= 8
+            || sign_up_data.password.chars().count() <= 60)
 }

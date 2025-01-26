@@ -1,8 +1,7 @@
 use crate::{business, user, AppState};
 use axum::{
-    handler::Handler,
     middleware,
-    routing::{delete, get, patch, post},
+    routing::{delete, get, patch, post, put},
     Json, Router,
 };
 
@@ -115,6 +114,27 @@ pub async fn app(state: AppState) -> Router {
         .route(
             "/api/user/promo/{promo_id}/comments/{comment_id}",
             get(user::promo::comments::get_comment_by_id).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/promo/{promo_id}/comments/{comment_id}",
+            put(user::promo::comments::edit_comment).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/promo/{promo_id}/comments/{comment_id}",
+            delete(user::promo::comments::delete_comment).layer(middleware::from_fn_with_state(
+                state.clone(),
+                user::middlewares::authorize::authorize_middleware,
+            )),
+        )
+        .route(
+            "/api/user/promo/{promo_id}/activate",
+            post(user::promo::activate_promo).layer(middleware::from_fn_with_state(
                 state.clone(),
                 user::middlewares::authorize::authorize_middleware,
             )),

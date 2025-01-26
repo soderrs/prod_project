@@ -10,7 +10,7 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{Duration, TimeDelta, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 use crate::{user::User, AppState};
 
@@ -49,7 +49,7 @@ pub struct Claims {
     pub email: String,
 }
 
-pub async fn retrieve_user_by_email(pool: &SqlitePool, email: &str) -> Option<User> {
+pub async fn retrieve_user_by_email(pool: &PgPool, email: &str) -> Option<User> {
     let user = sqlx::query_as(
         r#"
         SELECT * FROM users WHERE email = ?

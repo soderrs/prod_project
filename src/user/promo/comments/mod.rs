@@ -31,6 +31,7 @@ pub async fn add_comment(
         author: CommentAuthor {
             name: user.name,
             surname: user.surname,
+            email: user.email,
             avatar_url: user.avatar_url,
         },
     };
@@ -116,5 +117,116 @@ pub async fn get_comment_by_id(
         }
     } else {
         return Err(StatusCode::BAD_REQUEST);
+    }
+}
+
+pub async fn edit_comment(
+    State(app_state): State<AppState>,
+    Extension(user): Extension<User>,
+    Path(promo_id): Path<String>,
+    Path(comment_id): Path<String>,
+    Json(text): Json<String>,
+) -> Result<Json<Comment>, StatusCode> {
+    let promo: Option<Promo> = sqlx::query_as(
+        r#"
+            SELECT * FROM promos WHERE promo_id = ?
+        "#,
+    )
+    .bind(&promo_id)
+    .fetch_optional(&app_state.pool)
+    .await
+    .unwrap();
+
+    let promo = match promo {
+        Some(promo) => promo,
+        None => return Err(StatusCode::NOT_FOUND),
+    };
+
+    let comments = Vec::from_iter(promo.comments.0.into_iter());
+
+    match comments
+        .clone()
+        .into_iter()
+        .find(|comment| comment.id == comment_id)
+    {
+        Some(mut comment) => {
+            if comment.author.email != user.email {
+                return Err(StatusCode::FORBIDDEN);
+            }
+            comment.text = text;
+            sqlx::query(
+                r#"
+                    UPDATE promos
+                    SET comments = ?
+                    WHERE promo_id = ?
+                "#,
+            )
+            .bind(sqlx::types::Json(comments))
+            .bind(promo_id)
+            .execute(&app_state.pool)
+            .await
+            .unwrap();
+
+            Ok(Json(comment.clone()))
+        }
+        None => return Err(StatusCode::NOT_FOUND),
+    }
+}
+
+pub async fn delete_comment(
+    State(app_state): State<AppState>,
+    Extension(user): Extension<User>,
+    Path(promo_id): Path<String>,
+    Path(comment_id): Path<String>,
+    Json(text): Json<String>,
+) -> Result<Json<Comment>, StatusCode> {
+    let promo: Option<Promo> = sqlx::query_as(
+        r#"
+            SELECT * FROM promos WHERE promo_id = ?
+        "#,
+    )
+    .bind(&promo_id)
+    .fetch_optional(&app_state.pool)
+    .await
+    .unwrap();
+
+    let promo = match promo {
+        Some(promo) => promo,
+        None => return Err(StatusCode::NOT_FOUND),
+    };
+
+    let mut comments = Vec::from_iter(promo.comments.0.into_iter());
+
+    match comments
+        .clone()
+        .into_iter()
+        .find(|comment| comment.id == comment_id)
+    {
+        Some(comment) => {
+            if comment.author.email != user.email {
+                return Err(StatusCode::FORBIDDEN);
+            }
+
+            let idx = comments
+                .iter()
+                .rposition(|comment| comment.id == comment_id);
+            comments.remove(idx.unwrap());
+
+            sqlx::query(
+                r#"
+                    UPDATE promos
+                    SET comments = ?
+                    WHERE promo_id = ?
+                "#,
+            )
+            .bind(sqlx::types::Json(comments))
+            .bind(promo_id)
+            .execute(&app_state.pool)
+            .await
+            .unwrap();
+
+            Ok(Json(comment.clone()))
+        }
+        None => return Err(StatusCode::NOT_FOUND),
     }
 }

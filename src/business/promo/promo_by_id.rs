@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use super::{PatchPromo, Promo, PromoReadOnly, PromoStat};
 use crate::{business::auth::Company, AppState};
 use axum::{
@@ -5,6 +7,7 @@ use axum::{
     http::StatusCode,
     Extension, Json,
 };
+use chrono::NaiveDate;
 
 pub async fn get_promo(
     State(app_state): State<AppState>,
@@ -13,7 +16,7 @@ pub async fn get_promo(
 ) -> Result<Json<PromoReadOnly>, StatusCode> {
     let promo: Option<Promo> = sqlx::query_as(
         r#"
-        SELECT * FROM promos WHERE promo_id = ? AND company_id = ?
+        SELECT * FROM promos WHERE promo_id = ?
         "#,
     )
     .bind(id)
@@ -23,9 +26,14 @@ pub async fn get_promo(
     .unwrap();
 
     if promo.is_none() {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(StatusCode::NOT_FOUND);
     }
+
     let promo = promo.unwrap();
+
+    if promo.company_id != company.id {
+        return Err(StatusCode::FORBIDDEN);
+    }
 
     Ok(Json(PromoReadOnly {
         description: promo.description,
@@ -40,7 +48,7 @@ pub async fn get_promo(
         promo_id: promo.promo_id,
         company_id: promo.company_id,
         company_name: promo.company_name,
-        like_count: promo.likes.0.len() as u32,
+        like_count: promo.likes.0.len() as i32,
         used_count: promo.used_count,
         active: promo.active,
     }))
@@ -63,26 +71,31 @@ pub async fn edit_promo(
     .unwrap();
 
     if promo.is_none() {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(StatusCode::NOT_FOUND);
     }
 
     if promo.as_ref().unwrap().company_id != company.id {
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err(StatusCode::FORBIDDEN);
     }
-
+    if !patch_promo.is_valid(promo.as_ref().unwrap()) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
     let mut promo = promo.unwrap();
     promo.description = patch_promo.description.unwrap_or(promo.description);
-    promo.image_url = patch_promo
-        .image_url
-        .is_some()
-        .then_some(patch_promo.image_url.unwrap());
+    if let Some(image_url) = patch_promo.image_url {
+        promo.image_url = Some(image_url);
+    }
     promo.target = patch_promo.target.unwrap_or(promo.target);
     promo.max_count = patch_promo.max_count.unwrap_or(promo.max_count);
     if let Some(_) = patch_promo.active_from {
-        promo.active_from = patch_promo.active_from;
+        promo.active_from = Some(sqlx::types::Json(
+            NaiveDate::from_str(&patch_promo.active_from.unwrap()).unwrap(),
+        ));
     }
     if let Some(_) = patch_promo.active_until {
-        promo.active_until = patch_promo.active_until
+        promo.active_until = Some(sqlx::types::Json(
+            NaiveDate::from_str(&patch_promo.active_until.unwrap()).unwrap(),
+        ));
     }
 
     sqlx::query(r#"
@@ -114,7 +127,7 @@ pub async fn edit_promo(
         promo_id: promo.promo_id,
         company_id: promo.company_id,
         company_name: promo.company_name,
-        like_count: promo.likes.0.len() as u32,
+        like_count: promo.likes.0.len() as i32,
         used_count: promo.used_count,
         active: promo.active,
     }))

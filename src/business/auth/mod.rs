@@ -3,7 +3,7 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{Duration, TimeDelta, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqlitePool, FromRow};
+use sqlx::{FromRow, PgPool};
 use std::env;
 
 pub mod sign_in;
@@ -24,7 +24,7 @@ pub struct Company {
     pub password_hash: String,
 }
 
-pub async fn retrieve_company_by_email(pool: &SqlitePool, email: &str) -> Option<Company> {
+pub async fn retrieve_company_by_email(pool: &PgPool, email: &str) -> Option<Company> {
     let company = sqlx::query_as(
         r#"
         SELECT * FROM companies WHERE email = ?

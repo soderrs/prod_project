@@ -1,8 +1,9 @@
-CREATE TABLE promos (
+CREATE TABLE IF NOT EXISTS promos (
     description TEXT NOT NULL,
     image_url TEXT,
     target JSON NOT NULL,
     max_count INTEGER NOT NULL,
+    create_date TEXT NOT NULL,
     active_from TEXT,
     active_until TEXT,
     mode TEXT NOT NULL,

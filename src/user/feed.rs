@@ -32,9 +32,9 @@ pub async fn promo_feed(
             image_url: promo.image_url,
             active: promo.active,
             is_activated_by_user: promo.activated_users.contains(&user.email),
-            like_count: promo.likes.0.len() as u32,
+            like_count: promo.likes.0.len() as i32,
             is_liked_by_user: promo.likes.0.contains(&user.email),
-            comment_count: promo.comments.0.len() as u32,
+            comment_count: promo.comments.0.len() as i32,
         })
         .collect();
 

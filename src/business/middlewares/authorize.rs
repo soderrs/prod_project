@@ -15,8 +15,8 @@ pub async fn authorize_middleware(
     next: Next,
 ) -> Result<Response<Body>, StatusCode> {
     let auth_header = match req.headers_mut().get(http::header::AUTHORIZATION) {
-        Some(header) => header.to_str().map_err(|_| StatusCode::FORBIDDEN)?,
-        None => return Err(StatusCode::FORBIDDEN)?,
+        Some(header) => header.to_str().map_err(|_| StatusCode::UNAUTHORIZED)?,
+        None => return Err(StatusCode::UNAUTHORIZED)?,
     };
 
     let [_, token, ..] = *auth_header.split_whitespace().collect::<Vec<&str>>() else {
