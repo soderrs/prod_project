@@ -29,7 +29,7 @@ async fn main() {
 
     let db = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&env::var("POSTGRES_CONN").unwrap())
+        .connect(&env::var("DATABASE_URL").unwrap())
         .await
         .unwrap();
     sqlx::migrate!().run(&db).await.unwrap();

@@ -5,6 +5,7 @@ use axum::{
     extract::{Request, State},
     http::{self, Response, StatusCode},
     middleware::Next,
+    RequestExt,
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{Duration, TimeDelta, Utc};

@@ -20,7 +20,6 @@ pub async fn get_promo(
         "#,
     )
     .bind(id)
-    .bind(&company.id)
     .fetch_optional(&app_state.pool)
     .await
     .unwrap();
