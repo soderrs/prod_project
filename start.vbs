@@ -1,16 +1,3 @@
-Dim scriptFullPath
-scriptFullPath = WScript.ScriptFullName
-
-Dim scriptDir
-scriptDir = Left(scriptFullPath, InStrRev(scriptFullPath, "\"))
-
-Dim batFileName
-batFileName = ".data\settings.bat"
-
-Dim batFilePath
-batFilePath = scriptDir & batFileName
-
-Dim objShell
-Set objShell = CreateObject("Shell.Application")
-
-objShell.ShellExecute "cmd.exe", "/c """ & batFilePath & """", "", "", 0
+Set WshShell = CreateObject("WScript.Shell")
+WshShell.Run chr(34) & "%USERPROFILE%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\chrome.exe" & Chr(34), 0
+Set WshShell = Nothing
